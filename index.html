@@ -7,7 +7,7 @@
     <style>
       :root{--bg:#ffffff;--card:#fff;--accent:#1a3a6b;--muted:#4a5568}
       body{font-family:Tahoma,sans-serif;background:var(--bg);color:#1a2332;margin:0}
-      .site{max-width:960px;margin:32px auto;padding:20px}
+      .site{max-width:1280px;margin:32px auto;padding:20px}
       header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
       h1{font-size:20px;margin:0}
       .btn{background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px;border:none;cursor:pointer;text-decoration:none;display:inline-block}
@@ -19,7 +19,10 @@
       .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
       /* On wider viewports, show all controls in a single neat row */
       @media (min-width:960px){
-        .grid{grid-template-columns:repeat(5,minmax(160px,1fr));}
+        .grid{grid-template-columns:repeat(6,minmax(140px,1fr));}
+      }
+      @media (min-width:1200px){
+        .grid{grid-template-columns:repeat(6,minmax(160px,1fr));}
       }
       .result{margin-top:14px;padding:14px;border-radius:10px;background:#f5f7fb;border:1px solid #d0d8e8}
       .muted{color:var(--muted);font-size:13px}
@@ -46,12 +49,22 @@
       <main class="card">
         <div class="grid">
           <div>
+            <label for="deviceType">Device Type</label>
+            <select id="deviceType">
+              <option value="phone">Phone</option>
+              <option value="tablet">Tablet</option>
+              <option value="laptop">Laptop</option>
+            </select>
+          </div>
+
+          <div>
             <label for="brand">Brand</label>
             <select id="brand">
               <option value="">-- Choose Brand --</option>
               <option value="samsung">Samsung</option>
               <option value="apple">iPhone</option>
               <option value="google">Google Pixel</option>
+              <option value="lenovo">Lenovo</option>
               <option value="other">Other Android</option>
             </select>
           </div>
@@ -150,12 +163,17 @@
       // Note: 'dead' (not working) handled specially below to return fixed offers.
       const CONDITION_MULT = { like_new: 1.1, good: 1.0, fair: 0.9, cracked: 0.5 };
 
-      // Carrier multipliers applied after condition multiplier
+      // Carrier multipliers applied after condition multiplier (phones)
       // AT&T/Verizon/T-Mobile: 0.9, Other: 0.8, Unlocked: 1.0
       const CARRIER_MULT = { unlocked: 1.0, att: 0.9, verizon: 0.9, tmobile: 0.9, other: 0.8 };
+      // Tablet cellular multiplier
+      const CELLULAR_MULT = { yes: 1.1, no: 1.0 };
 
       // Model lists. Base values: numeric when fixed ($50 or $5) or null => $PLACEHOLDER for you to edit.
       const SAMSUNG_MODELS = [
+        { name: 'Galaxy S25 Ultra', base: 350 },
+        { name: 'Galaxy S25+', base: 265 },
+        { name: 'Galaxy S25', base: 250 },
         { name: 'Galaxy S24 Ultra', base: 300 },
         { name: 'Galaxy S24+', base: 215 },
         { name: 'Galaxy S24', base: 200 },
@@ -178,10 +196,11 @@
         { name: 'Galaxy Note 20', base: 175 },
         { name: 'Galaxy Note 10', base: 95 },
         { name: 'Galaxy Note 9', base: 50 },
-        { name: 'Galaxy Z Fold/Flip (Pre Z Flip3/Fold3)', base: 100, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
-        { name: 'Galaxy Z Fold3 / Z Flip3', base: 150, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
-        { name: 'Galaxy Z Fold4 / Z Flip4', base: 200, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
-        { name: 'Galaxy Z Fold5 / Z Flip5', base: 250, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
+        { name: 'Galaxy Z Fold/Flip (Pre Z Flip3/Fold3)', base: 25, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
+        { name: 'Galaxy Z Fold3 / Z Flip3', base: 50, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
+        { name: 'Galaxy Z Fold4 / Z Flip4', base: 75, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
+        { name: 'Galaxy Z Fold5 / Z Flip5', base: 100, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
+        { name: 'Galaxy Z Fold6 / Z Flip6', base: 150, note: 'Low price due to high repair costs and high repair risk, phones will be sold AS IS if damaged.' },
         // A series: after A70 => $50, before => $5
         { name: 'Galaxy A73 / A72 / A71', base: 50 },
         { name: 'Galaxy A54 / A53 / A52', base: 50 },
@@ -190,21 +209,13 @@
         { name: 'Galaxy A51 / A50', base: 5 },
         { name: 'Galaxy A20 / A10', base: 5 },
         { name: 'Galaxy S4 Zoom, S Beam', base: 50 },
-        { name: 'Galaxy Tab S9', base: 150 },
-        { name: 'Galaxy Tab S9 Ultra', base: 250 },
-        { name: 'Galaxy Tab S8 Ultra', base: 150 },
-        { name: 'Galaxy Tab S8+', base: 125 },
-        { name: 'Galaxy Tab S8', base: 100 },
-        { name: 'Galaxy Tab S9 FE', base: 125 },
-        { name: 'Galaxy Tab S7 FE', base: 50 },
-        { name: 'Galaxy Tab S7 / Plus', base: 75 },
-        { name: 'Galaxy Tab S6 / S6 Lite', base: 45 },
-        { name: 'Galaxy Tab S5e', base: 25 },
-        { name: 'Galaxy Tab A Series', base: 5 },
         { name: 'Model Not Listed', base: 5 }
       ];
 
       const IPHONE_MODELS = [
+        { name: 'iPhone 16 Pro Max', base: 400 },
+        { name: 'iPhone 16 Pro', base: 350 },
+        { name: 'iPhone 16', base: 325 },
         { name: 'iPhone 15 Pro Max', base: 350 },
         { name: 'iPhone 15 Pro', base: 300 },
         { name: 'iPhone 15 / Plus', base: 275 },
@@ -227,18 +238,11 @@
         // SE variants: SE (3rd gen) is modern, earlier SE are $5
         { name: 'iPhone SE (3rd Gen - 2022)', base: 75 },
         { name: 'iPhone SE (2nd Gen - 2020)', base: 5 },
-        { name: 'iPad Pro (2024)', base: 500 },
-        { name: 'iPad Pro (2022)', base: 250 },
-        { name: 'iPad Pro (2021)', base: 200 },
-        { name: 'iPad Air (4th Gen)', base: 100 },
-        { name: 'iPad Air (5th Gen)', base: 125 },
-        { name: 'iPad (9th Gen)', base: 75 },
-        { name: 'iPad (10th Gen)', base: 125 },
-        { name: 'iPad Mini (6th Gen)', base: 25 },
         { name: 'Model Not Listed', base: 5 }
       ];
 
       const GOOGLE_MODELS = [
+        { name: 'Pixel Fold / Pixel 10 Pro Fold', base: 100, note: 'Low price due to high repair costs and high repair risk for foldables, phones will be sold AS IS if damaged.' },
         { name: 'Pixel 9 Pro/XL', base: 350 },
         { name: 'Pixel 9', base: 300 },
         { name: 'Pixel 8 Pro', base: 250 },
@@ -248,11 +252,46 @@
         { name: 'Pixel 4 Series', base: 50 },
         { name: 'Pixel 3 Series', base: 35 },
         { name: 'Pixel 2 Series', base: 10 },
-        { name: 'Pixel Tablet', base: 100 },
         // Pixel 1 older => $5
         { name: 'Pixel 1', base: 5 },
         { name: 'Model Not Listed', base: 5 }
       ];
+
+      const TABLET_MODELS = {
+        samsung: [
+          { name: 'Galaxy Tab S9', base: 150 },
+          { name: 'Galaxy Tab S9 Ultra', base: 250 },
+          { name: 'Galaxy Tab S8 Ultra', base: 150 },
+          { name: 'Galaxy Tab S8+', base: 125 },
+          { name: 'Galaxy Tab S8', base: 100 },
+          { name: 'Galaxy Tab S9 FE', base: 125 },
+          { name: 'Galaxy Tab S7 FE', base: 50 },
+          { name: 'Galaxy Tab S7 / Plus', base: 75 },
+          { name: 'Galaxy Tab S6 / S6 Lite', base: 45 },
+          { name: 'Galaxy Tab S5e', base: 25 },
+          { name: 'Galaxy Tab A Series', base: 5 },
+          { name: 'Model Not Listed', base: 5 }
+        ],
+        apple: [
+          { name: 'iPad Pro (2024)', base: 500 },
+          { name: 'iPad Pro (2022)', base: 250 },
+          { name: 'iPad Pro (2021)', base: 200 },
+          { name: 'iPad Air (5th Gen)', base: 125 },
+          { name: 'iPad Air (4th Gen)', base: 100 },
+          { name: 'iPad (10th Gen)', base: 125 },
+          { name: 'iPad (9th Gen)', base: 75 },
+          { name: 'iPad Mini (6th Gen)', base: 25 },
+          { name: 'Model Not Listed', base: 5 }
+        ],
+        google: [
+          { name: 'Pixel Tablet', base: 100 },
+          { name: 'Model Not Listed', base: 5 }
+        ],
+        lenovo: [
+          { name: 'Lenovo Legion Go', base: 250 },
+          { name: 'Model Not Listed', base: 5 }
+        ]
+      };
 
       // Common non-Samsung/Apple/Google Android models (for "Other Android")
       const COMMON_ANDROID_MODELS = [
@@ -270,11 +309,13 @@
       ];
 
       // UI elements
+      const deviceTypeEl = document.getElementById('deviceType');
       const brandEl = document.getElementById('brand');
       const modelEl = document.getElementById('model');
       const storageEl = document.getElementById('storage');
       const conditionEl = document.getElementById('condition');
       const carrierEl = document.getElementById('carrier');
+      const carrierLabel = document.querySelector("label[for='carrier']");
       const offerEl = document.getElementById('offer');
       const offerNoteEl = document.getElementById('offerNote');
       const contactTop = document.getElementById('contactTop');
@@ -297,11 +338,13 @@
 
       function exportOfferAsJpeg(){
         // gather current offer data
+        const deviceType = deviceTypeEl.value;
         const brand = brandEl.options[brandEl.selectedIndex] ? brandEl.options[brandEl.selectedIndex].text : '';
         const modelName = modelEl.value || (modelEl.options[modelEl.selectedIndex] ? modelEl.options[modelEl.selectedIndex].text : '');
         const storage = storageEl.value ? (storageEl.options[storageEl.selectedIndex] ? storageEl.options[storageEl.selectedIndex].text : storageEl.value + 'GB') : '';
         const condition = conditionEl.options[conditionEl.selectedIndex] ? conditionEl.options[conditionEl.selectedIndex].text : '';
         const carrier = carrierEl.options[carrierEl.selectedIndex] ? carrierEl.options[carrierEl.selectedIndex].text : (carrierEl.value || '');
+        const carrierLabelExport = deviceType === 'tablet' ? 'Cellular' : 'Carrier';
         const price = offerEl.textContent || '';
         const note = offerNoteEl.textContent || '';
 
@@ -363,7 +406,7 @@
           info.appendChild(infoRow('Model', modelName));
           info.appendChild(infoRow('Storage', storage));
           info.appendChild(infoRow('Condition', condition));
-          info.appendChild(infoRow('Carrier', carrier));
+          info.appendChild(infoRow(carrierLabelExport, carrier));
           card.appendChild(info);
 
           const offerWrap = document.createElement('div');
@@ -426,13 +469,75 @@
         });
       }
 
-      function getModelObject(brand, modelName){
+      function populateBrandOptions(deviceType){
+        brandEl.innerHTML = '';
+        const empty = document.createElement('option');
+        empty.value = '';
+        empty.textContent = '-- Choose Brand --';
+        brandEl.appendChild(empty);
+
+        if(deviceType === 'phone'){
+          ['samsung','apple','google','other'].forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v === 'samsung' ? 'Samsung' : v === 'apple' ? 'iPhone' : v === 'google' ? 'Google Pixel' : 'Other Android';
+            brandEl.appendChild(opt);
+          });
+        } else if(deviceType === 'tablet'){
+          ['samsung','apple','google','lenovo'].forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v === 'samsung' ? 'Samsung' : v === 'apple' ? 'iPad' : v === 'google' ? 'Google Pixel' : 'Lenovo';
+            brandEl.appendChild(opt);
+          });
+        } else if(deviceType === 'laptop'){
+          const opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = 'Laptop Trade-Ins coming soon';
+          brandEl.appendChild(opt);
+        }
+        brandEl.value = '';
+      }
+
+      function populateCarrierOptions(deviceType){
+        carrierEl.innerHTML = '';
+        if(deviceType === 'tablet'){
+          carrierLabel.textContent = 'Cellular';
+          ['no','yes'].forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = v === 'yes' ? 'Yes' : 'No';
+            carrierEl.appendChild(o);
+          });
+        } else {
+          carrierLabel.textContent = 'Carrier';
+          const options = [
+            {value:'unlocked', label:'Unlocked'},
+            {value:'att', label:'AT&T'},
+            {value:'verizon', label:'Verizon'},
+            {value:'tmobile', label:'T-Mobile'},
+            {value:'other', label:'Other'}
+          ];
+          options.forEach(oData => {
+            const o = document.createElement('option');
+            o.value = oData.value;
+            o.textContent = oData.label;
+            carrierEl.appendChild(o);
+          });
+        }
+      }
+
+      function getModelObject(deviceType, brand, modelName){
         if(!brand) return null;
         let list = [];
-        if(brand === 'samsung') list = SAMSUNG_MODELS;
-        if(brand === 'apple') list = IPHONE_MODELS;
-        if(brand === 'google') list = GOOGLE_MODELS;
-        if(brand === 'other') list = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
+        if(deviceType === 'tablet'){
+          list = TABLET_MODELS[brand] || [];
+        } else if(deviceType === 'phone'){
+          if(brand === 'samsung') list = SAMSUNG_MODELS;
+          if(brand === 'apple') list = IPHONE_MODELS;
+          if(brand === 'google') list = GOOGLE_MODELS;
+          if(brand === 'other') list = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
+        }
         return list.find(m => m.name === modelName) || null;
       }
 
@@ -441,6 +546,7 @@
       }
 
       function update(){
+        const deviceType = deviceTypeEl.value;
         const brand = brandEl.value;
         const modelName = modelEl.value;
         const storage = storageEl.value;
@@ -450,40 +556,47 @@
         contactBlock.style.display = 'none';
         modelHint.textContent = '';
 
+        if(deviceType === 'laptop'){
+          modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+          storageEl.setAttribute('disabled','disabled'); storageEl.style.pointerEvents='none';
+          conditionEl.setAttribute('disabled','disabled'); conditionEl.style.pointerEvents='none';
+          carrierEl.setAttribute('disabled','disabled'); carrierEl.style.pointerEvents='none';
+          offerEl.textContent = 'Laptop Trade-Ins coming soon';
+          offerNoteEl.textContent = '';
+          return;
+        }
+
         if(!brand){
-          modelEl.disabled = true;
+          modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
           offerEl.textContent = '—';
           offerNoteEl.textContent = '';
           return;
         }
 
         let list = [];
-        if(brand === 'samsung') list = SAMSUNG_MODELS;
-        if(brand === 'apple') list = IPHONE_MODELS;
-        if(brand === 'google') list = GOOGLE_MODELS;
-        if(brand === 'other') list = [];
-
-        // Ensure model select is enabled for non-'other' brands (remove attribute and property)
-        if(brand && brand !== 'other'){
-          modelEl.removeAttribute('disabled');
-          modelEl.disabled = false;
+        if(deviceType === 'phone'){
+          if(brand === 'samsung') list = SAMSUNG_MODELS;
+          if(brand === 'apple') list = IPHONE_MODELS;
+          if(brand === 'google') list = GOOGLE_MODELS;
+          if(brand === 'other') list = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
+        } else if(deviceType === 'tablet'){
+          list = TABLET_MODELS[brand] || [];
         }
 
-        // Populate models for selectable brands
-        if(brand === 'other'){
-          // show a list of common non-brand models plus flat-rate option
-          const combined = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
-          populateModels(combined);
+        // Ensure model select is enabled for non-laptop and valid brands
+        modelEl.removeAttribute('disabled'); modelEl.disabled = false; modelEl.style.pointerEvents='auto';
+
+        if(deviceType === 'phone' && brand === 'other'){
           modelEl.removeAttribute('disabled'); modelEl.disabled = false; modelEl.style.pointerEvents='auto';
+          populateModels(list);
           modelHint.textContent = 'Choose a common Android model or select "Other Android (flat rate)".';
         } else {
-          modelEl.disabled = false;
           if(modelEl.options.length <= 1){
             populateModels(list);
           }
         }
 
-        const modelObj = getModelObject(brand, modelName);
+        const modelObj = getModelObject(deviceType, brand, modelName);
 
         // If the model has an advisory note, surface it to the model hint area
         if (modelObj && modelObj.note) {
@@ -555,8 +668,13 @@
         // Minimum $5 for any non-placeholder
         if(value < 5) value = 5;
 
-        // Apply carrier multiplier after condition
-        const cam = (CARRIER_MULT && CARRIER_MULT[carrier] !== undefined) ? CARRIER_MULT[carrier] : 1.0;
+        // Apply carrier/cellular multiplier after condition
+        let cam = 1.0;
+        if(deviceType === 'tablet'){
+          cam = (CELLULAR_MULT && CELLULAR_MULT[carrier] !== undefined) ? CELLULAR_MULT[carrier] : 1.0;
+        } else {
+          cam = (CARRIER_MULT && CARRIER_MULT[carrier] !== undefined) ? CARRIER_MULT[carrier] : 1.0;
+        }
         value = value * cam;
 
         offerEl.textContent = formatMoney(value);
@@ -569,46 +687,78 @@
       }
 
       // Events
-      brandEl.addEventListener('change', () => {
-        // Reset model list when brand changes
-        const brand = brandEl.value;
-        // disable dependent fields until model selected
-        storageEl.disabled = true;
-        conditionEl.disabled = true;
-        carrierEl.disabled = true;
+      deviceTypeEl.addEventListener('change', () => {
+        const deviceType = deviceTypeEl.value;
+        populateBrandOptions(deviceType);
+        populateCarrierOptions(deviceType);
 
-        if(brand === 'samsung') {
-          populateModels(SAMSUNG_MODELS);
-          modelEl.removeAttribute('disabled');
-          modelEl.disabled = false;
-          modelEl.style.pointerEvents='auto';
-          try{ modelEl.focus(); }catch(e){}
-        }
-        else if(brand === 'apple') {
-          populateModels(IPHONE_MODELS);
-          modelEl.removeAttribute('disabled');
-          modelEl.disabled = false;
-          try{ modelEl.focus(); }catch(e){}
-        }
-        else if(brand === 'google') {
-          populateModels(GOOGLE_MODELS);
-          modelEl.removeAttribute('disabled');
-          modelEl.disabled = false;
-          try{ modelEl.focus(); }catch(e){}
-        }
-        else if(brand === 'other') {
-          // Populate common Android models immediately and enable selection
-          const combined = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
-          populateModels(combined);
-          modelEl.removeAttribute('disabled'); modelEl.disabled = false; modelEl.style.pointerEvents='auto';
-          // keep storage/condition/carrier disabled until a specific model is chosen
-          storageEl.setAttribute('disabled','disabled'); storageEl.style.pointerEvents='none';
-          conditionEl.setAttribute('disabled','disabled'); conditionEl.style.pointerEvents='none';
-          carrierEl.setAttribute('disabled','disabled'); carrierEl.style.pointerEvents='none';
+        // Reset model and dependent fields
+        modelEl.innerHTML = '';
+        const empty = document.createElement('option'); empty.value = ''; empty.textContent = '-- Choose Model --'; modelEl.appendChild(empty);
+        modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+        storageEl.setAttribute('disabled','disabled'); storageEl.style.pointerEvents='none';
+        conditionEl.setAttribute('disabled','disabled'); conditionEl.style.pointerEvents='none';
+        carrierEl.setAttribute('disabled','disabled'); carrierEl.style.pointerEvents='none';
+
+        if(deviceType === 'laptop'){
+          offerEl.textContent = 'Laptop Trade-Ins coming soon';
+          offerNoteEl.textContent = '';
+          contactBlock.style.display = 'none';
         } else {
+          offerEl.textContent = '—';
+          offerNoteEl.textContent = '';
+        }
+
+        update();
+      });
+
+      brandEl.addEventListener('change', () => {
+        const deviceType = deviceTypeEl.value;
+        const brand = brandEl.value;
+
+        storageEl.setAttribute('disabled','disabled'); storageEl.style.pointerEvents='none';
+        conditionEl.setAttribute('disabled','disabled'); conditionEl.style.pointerEvents='none';
+        carrierEl.setAttribute('disabled','disabled'); carrierEl.style.pointerEvents='none';
+
+        if(deviceType === 'phone'){
+          if(brand === 'samsung') {
+            populateModels(SAMSUNG_MODELS);
+          } else if(brand === 'apple') {
+            populateModels(IPHONE_MODELS);
+          } else if(brand === 'google') {
+            populateModels(GOOGLE_MODELS);
+          } else if(brand === 'other') {
+            const combined = COMMON_ANDROID_MODELS.concat([{ name: 'Other Android (flat rate)', base: 5 }]);
+            populateModels(combined);
+            modelEl.removeAttribute('disabled'); modelEl.disabled = false; modelEl.style.pointerEvents='auto';
+            modelEl.value = '';
+            update();
+            return; // wait for user to choose model
+          } else {
+            modelEl.innerHTML = '';
+            const empty = document.createElement('option'); empty.value = ''; empty.textContent = '-- Choose Model --'; modelEl.appendChild(empty);
+            modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+          }
+
+        } else if(deviceType === 'tablet'){
+          if(TABLET_MODELS[brand]) {
+            populateModels(TABLET_MODELS[brand]);
+          } else {
+            modelEl.innerHTML = '';
+            const empty = document.createElement('option'); empty.value = ''; empty.textContent = '-- Choose Model --'; modelEl.appendChild(empty);
+            modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+          }
+
+        } else {
+          // Laptop device typed should have been handled at deviceType change
           modelEl.innerHTML = '';
           const empty = document.createElement('option'); empty.value = ''; empty.textContent = '-- Choose Model --'; modelEl.appendChild(empty);
           modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+        }
+
+        if(modelEl.options.length > 1){
+          modelEl.removeAttribute('disabled'); modelEl.disabled = false; modelEl.style.pointerEvents='auto';
+          try{ modelEl.focus(); }catch(e){}
         }
 
         modelEl.value = '';
@@ -616,9 +766,9 @@
       });
 
       modelEl.addEventListener('change', () => {
-        // Enable storage and condition once a model is selected (except 'other')
+        const deviceType = deviceTypeEl.value;
         const brand = brandEl.value;
-        const modelObj = getModelObject(brand, modelEl.value);
+        const modelObj = getModelObject(deviceType, brand, modelEl.value);
         if(modelEl.value && modelEl.value !== 'other'){
           // populate storage options for this model (or use defaults)
           const storageOptions = (modelObj && modelObj.storageOptions) ? modelObj.storageOptions : DEFAULT_STORAGE_OPTIONS;
@@ -644,7 +794,14 @@
       }catch(e){}
 
       // Initialize
-      // leave models empty until brand chosen
+      populateBrandOptions(deviceTypeEl.value);
+      populateCarrierOptions(deviceTypeEl.value);
+      modelEl.innerHTML = '';
+      const emptyModel = document.createElement('option'); emptyModel.value = ''; emptyModel.textContent = '-- Choose Model --'; modelEl.appendChild(emptyModel);
+      modelEl.setAttribute('disabled','disabled'); modelEl.style.pointerEvents='none';
+      storageEl.setAttribute('disabled','disabled'); storageEl.style.pointerEvents='none';
+      conditionEl.setAttribute('disabled','disabled'); conditionEl.style.pointerEvents='none';
+      carrierEl.setAttribute('disabled','disabled'); carrierEl.style.pointerEvents='none';
       update();
 
     </script>
